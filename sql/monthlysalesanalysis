@@ -1,0 +1,50 @@
+============================================================
+--Purpose:
+--Analyze profitability per unit and monthly trends
+--Key Metrics: 
+--Profitability
+--Profit per unit, profit per transaction, profit margin, monthly profit per product, quantity sold, profit changes month-month
+--Margins
+--Markup percentages, weighted markup percentages,
+--SQL Concepts Demonstrated:
+--CTEs, DATETRUNC(), Aggregate Functions, Window Functions (LAG,ORDER BY)
+============================================================
+
+
+============================================================
+CTE 1: Calculates profitability metrics at the transaction level
+============================================================
+
+WITH BASE_QUERY AS (SELECT Product_ID, Unit_Price, Unit_Cost, Quantity_Sold,Sale_Date,
+  ROUND((Unit_Price-Unit_Cost),3) AS Profit_per_unit,
+  ROUND((Unit_Price-Unit_Cost)*Quantity_Sold,3) AS profitpertransaction,
+  ROUND(((Unit_Price-Unit_Cost)/Unit_Cost)*100,3) AS Markup_perc,
+  ROUND(((Unit_Price-Unit_Cost)/Unit_Price)*100,3) AS Profit_Margin,
+
+ FROM `project.salesdata.salesdata`
+),
+============================================================
+CTE 2: Aggregates profitability metrics per month
+============================================================
+
+monthly AS ( 
+  SELECT Product_ID,
+  DATE_TRUNC(Sale_Date, MONTH) AS Sale_Month,
+  ROUND(SUM(profitpertransaction),3) AS Profit_per_month,
+  SUM(Quantity_Sold) AS Total_monthly_quantity,
+  ROUND(AVG(Profit_Margin),3) AS Avg_monthly_profit_margin,
+  ROUND((SUM(profitpertransaction)/SUM(Unit_Cost*Quantity_Sold)*100),3) AS weight_monthly_profit_margin
+  FROM BASE_QUERY 
+  GROUP BY Sale_Month,Product_ID
+)
+============================================================
+Final Query: Calculates month-over-month changes in product profitability
+============================================================
+SELECT Product_ID,Sale_month,Profit_per_month,Total_monthly_quantity,Avg_monthly_profit_margin,monthly.weight_monthly_profit_margin,
+
+  LAG(monthly.Profit_per_month) OVER (PARTITION BY Product_ID ORDER BY Sale_Month) AS Previous_month_profit,  
+  ROUND(Profit_per_month-LAG(monthly.Profit_per_month) OVER (
+PARTITION BY Product_ID ORDER BY Sale_Month),3) 
+AS Profitchange_MtM,
+  FROM monthly
+ORDER BY Product_ID,Sale_Month
