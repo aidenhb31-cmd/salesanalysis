@@ -34,6 +34,15 @@ The first CTE calculates profitability metrics for each sales transaction, inclu
 
 The second stage aggregates the transaction-level data by product and month. Monthly profit, quantity sold, and profitability metrics are calculated before using the LAG() window function to compare each products performance with the previous month.
 
+### 3. Future Improvements
+Including a calculated moving average and building a predictive model to forecast for the next year with a high confidence level and established confidence intervals within Power BI. 
+
+Author
+
+Aiden Bilyard
+
+MIS Student | Data Analytics & Business Intelligence
+
 ## Business Applications
 
 This type of analysis could help a business:
