@@ -1,0 +1,35 @@
+--------------------------------------------------
+Computes weighted average margin - a measure of how well a business profits with different products over a period of time
+---------------------------------------------------
+
+---------------------------------------------------
+Base query to extract transaction-level data
+---------------------------------------------------
+WITH BASE_QUERY AS (SELECT Product_ID, Unit_Price, Unit_Cost, Quantity_Sold,Sale_Date,
+  ROUND((Unit_Price-Unit_Cost),3) AS Profit_per_unit,
+  ROUND((Unit_Price-Unit_Cost)*Quantity_Sold,3) AS profitpertransaction,
+  ROUND(((Unit_Price-Unit_Cost)/Unit_Cost)*100,3) AS Markup_perc,
+  ROUND(((Unit_Price-Unit_Cost)/Unit_Price)*100,3) AS Profit_Margin,
+ FROM `project.salesdata.salesdata`
+),
+---------------------------------------------------
+Second query uses that data to compute statistics for sales over time
+---------------------------------------------------
+second_query AS (SELECT Product_ID,
+  DATE_TRUNC(Sale_Date, MONTH) AS Sale_Month,
+  ROUND(SUM(profitpertransaction),3) AS Profit_per_month,
+  SUM(Quantity_Sold) AS Total_monthly_quantity,
+  ROUND(AVG(Profit_Margin),3) AS Avg_monthly_profit_margin,
+  ROUND((SUM(profitpertransaction)/SUM(Unit_Cost*Quantity_Sold)*100),3) AS weight_monthly_profit_margin,
+  FROM BASE_QUERY 
+  GROUP BY Sale_Month,Product_ID
+  )
+---------------------------------------------------
+Last query averages the weighted margin for every month - 19.
+---------------------------------------------------
+
+SELECT Sale_Month,weight_monthly_profit_margin,
+AVG(weight_monthly_profit_margin) OVER() AS avgweightprofitmargin,
+FROM second_query
+GROUP BY Sale_Month, second_query.weight_monthly_profit_margin 
+ORDER BY Sale_Month
